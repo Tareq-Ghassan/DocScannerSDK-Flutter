@@ -48,7 +48,7 @@ android {
 dependencies {
     implementation 'androidx.core:core-ktx:1.15.0'
     // Native DocScanner SDK — do not copy Kotlin sources into this plugin.
-    // Until JitPack has 1.0.0 published from DocScannerSDK-Android, CI/local
+    // Until JitPack has 1.0.1 published from DocScannerSDK-Android, CI/local
     // apps can also composite-build the sibling submodule. Prefer JitPack pin:
-    api 'com.github.Tareq-Ghassan:DocScannerSDK-Android:1.0.0'
+    api 'com.github.Tareq-Ghassan:DocScannerSDK-Android:1.0.1'
 }
