@@ -1,0 +1,62 @@
+name: Publish Flutter plugin
+
+# Independent of Android/iOS/other SDK tags.
+# One-time: pub.dev → doc_scanner_sdk → Automated publishing from GitHub Actions
+#   Repository: Tareq-Ghassan/DocScannerSDK-Flutter
+#   Tag pattern: v{{version}}
+#
+#   git tag v3.0.3 && git push origin v3.0.3
+# Also creates the GitHub Release (sidebar Latest). A tag alone does not.
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  github-release:
+    name: GitHub Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+
+  publish:
+    name: Publish → pub.dev
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dart-lang/setup-dart@v1
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Require pubspec version == tag
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          PUBSPEC="$(ruby -ryaml -e "puts YAML.load_file('pubspec.yaml')['version']")"
+          echo "pubspec=$PUBSPEC tag=$TAG"
+          test "$PUBSPEC" = "$TAG"
+
+      - run: flutter pub get
+      - run: dart format --output=none --set-exit-if-changed lib
+      - run: dart pub global activate pana
+      - run: pana --no-warning --exit-code-threshold 160
+      # Pana rewrites analysis_options.yaml; pub publish --dry-run fails if the tree is dirty.
+      - run: git restore --worktree --source=HEAD -- .
+      - run: dart pub publish --dry-run
+      - run: dart pub publish --force

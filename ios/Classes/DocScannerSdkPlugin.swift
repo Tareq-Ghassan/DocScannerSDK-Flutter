@@ -2,75 +2,109 @@ import Flutter
 import UIKit
 import AVFoundation
 
+/// Flutter → iOS bridge. Uses embedded DocScannerSDK snapshot for crop UI.
 public class DocScannerSdkPlugin: NSObject, FlutterPlugin {
-    private var viewController: UIViewController?
-    private var pendingResult: FlutterResult?
-    
-    public static func register(with registrar: FlutterPluginRegistrar) {
-        let channel = FlutterMethodChannel(name: "doc_scanner_sdk", binaryMessenger: registrar.messenger())
-        let instance = DocScannerSdkPlugin()
-        
-        if let app = UIApplication.shared.delegate, let window = app.window {
-            instance.viewController = window?.rootViewController
-        }
-        
-        registrar.addMethodCallDelegate(instance, channel: channel)
-    }
+  public static func register(with registrar: FlutterPluginRegistrar) {
+    let channel = FlutterMethodChannel(name: "doc_scanner_sdk", binaryMessenger: registrar.messenger())
+    let instance = DocScannerSdkPlugin()
+    registrar.addMethodCallDelegate(instance, channel: channel)
+  }
 
-    public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
-        switch call.method {
-        case "requestCameraPermission":
-            requestCameraPermission(result: result)
-            
-        case "hasCameraPermission":
-            result(hasCameraPermission())
-            
-        case "scanDocument":
-            scanDocument(arguments: call.arguments, bothSides: false, result: result)
-            
-        case "scanBothSides":
-            scanDocument(arguments: call.arguments, bothSides: true, result: result)
-            
-        case "getVersion":
-            result("1.0.0")
-            
-        default:
-            result(FlutterMethodNotImplemented)
-        }
+  private var camera: DocScannerCamera?
+
+  public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+    switch call.method {
+    case "getVersion":
+      result(DocScannerSDK.version)
+    case "hasCameraPermission":
+      result(AVCaptureDevice.authorizationStatus(for: .video) == .authorized)
+    case "requestCameraPermission":
+      AVCaptureDevice.requestAccess(for: .video) { granted in
+        DispatchQueue.main.async { result(granted) }
+      }
+    case "scanDocument":
+      // Present a simple full-screen host that uses DocScannerCamera.
+      // Full UIViewController presentation is enough for v1.
+      guard let root = UIApplication.shared.connectedScenes
+        .compactMap({ ($0 as? UIWindowScene)?.keyWindow })
+        .first?.rootViewController else {
+        result(FlutterError(code: "NO_VC", message: "No root view controller", details: nil))
+        return
+      }
+      let args = call.arguments as? [String: Any] ?? [:]
+      let host = DocScannerHostViewController(args: args) { scan in
+        result(scan)
+      }
+      host.modalPresentationStyle = .fullScreen
+      root.present(host, animated: true)
+    default:
+      result(FlutterMethodNotImplemented)
     }
-    
-    private func requestCameraPermission(result: @escaping FlutterResult) {
-        AVCaptureDevice.requestAccess(for: .video) { granted in
-            DispatchQueue.main.async {
-                result(granted)
-            }
+  }
+}
+
+final class DocScannerHostViewController: UIViewController {
+  private let args: [String: Any]
+  private let completion: ([String: Any?]) -> Void
+  private let camera = DocScannerCamera()
+  private let captureButton = UIButton(type: .system)
+
+  init(args: [String: Any], completion: @escaping ([String: Any?]) -> Void) {
+    self.args = args
+    self.completion = completion
+    super.init(nibName: nil, bundle: nil)
+  }
+
+  required init?(coder: NSCoder) { fatalError() }
+
+  override func viewDidLoad() {
+    super.viewDidLoad()
+    view.backgroundColor = .black
+    let options = DocScannerOptions(
+      showCropOverlay: (args["showCropOverlay"] as? Bool) ?? true,
+      scanBothSides: (args["scanBothSides"] as? Bool) ?? false,
+      jpegQuality: CGFloat((args["jpegQuality"] as? Int) ?? 95) / 100.0
+    )
+    camera.configure(options)
+    camera.previewView.frame = view.bounds
+    camera.previewView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+    view.addSubview(camera.previewView)
+    captureButton.setTitle("Capture", for: .normal)
+    captureButton.backgroundColor = .white
+    captureButton.setTitleColor(.black, for: .normal)
+    captureButton.layer.cornerRadius = 28
+    captureButton.frame = CGRect(x: (view.bounds.width - 72) / 2, y: view.bounds.height - 120, width: 72, height: 56)
+    captureButton.autoresizingMask = [.flexibleTopMargin, .flexibleLeftMargin, .flexibleRightMargin]
+    captureButton.addTarget(self, action: #selector(onCapture), for: .touchUpInside)
+    view.addSubview(captureButton)
+    try? camera.start()
+  }
+
+  @objc private func onCapture() {
+    Task {
+      do {
+        let image = try await camera.capture()
+        let path = try camera.saveJPEG(image)
+        camera.stop()
+        dismiss(animated: true) {
+          self.completion([
+            "isSuccess": true,
+            "frontImagePath": path,
+            "backImagePath": nil,
+            "errorMessage": nil
+          ])
         }
-    }
-    
-    private func hasCameraPermission() -> Bool {
-        return AVCaptureDevice.authorizationStatus(for: .video) == .authorized
-    }
-    
-    private func scanDocument(arguments: Any?, bothSides: Bool, result: @escaping FlutterResult) {
-        guard let viewController = viewController else {
-            result(FlutterError(code: "NO_VIEW_CONTROLLER",
-                              message: "View controller not available",
-                              details: nil))
-            return
+      } catch {
+        camera.stop()
+        dismiss(animated: true) {
+          self.completion([
+            "isSuccess": false,
+            "frontImagePath": nil,
+            "backImagePath": nil,
+            "errorMessage": error.localizedDescription
+          ])
         }
-        
-        pendingResult = result
-        
-        // TODO: Present scanner view controller
-        // For now, return mock data
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-            self?.pendingResult?([
-                "frontImagePath": "/path/to/front.jpg",
-                "backImagePath": bothSides ? "/path/to/back.jpg" : nil,
-                "timestamp": Int64(Date().timeIntervalSince1970 * 1000),
-                "isSuccess": true
-            ] as [String: Any])
-            self?.pendingResult = nil
-        }
+      }
     }
+  }
 }

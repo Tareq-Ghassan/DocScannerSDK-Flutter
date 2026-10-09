@@ -1,73 +1,41 @@
-/// Configuration options for document scanning
+/// Options forwarded to the native DocScanner SDK.
+///
+/// Overlay drawing happens natively — these values configure that UI.
 class ScanOptions {
-  /// Border color for the crop overlay (hex color string, e.g., "#FFFFFF")
-  final String borderColor;
-
-  /// Border width in dp/pixels
-  final double borderWidth;
-
-  /// Border corner radius in dp/pixels
-  final double borderRadius;
-
-  /// Overlay margin from screen edges (left and right) in dp/pixels
-  final double overlayMargin;
-
-  /// Overlay height in dp/pixels
-  final double overlayHeight;
-
-  /// Enable flash for camera
-  final bool enableFlash;
-
-  /// Enable auto-focus
-  final bool enableAutoFocus;
-
-  /// Image quality (0-100)
-  final int imageQuality;
-
   const ScanOptions({
-    this.borderColor = '#FFFFFF',
-    this.borderWidth = 2.0,
-    this.borderRadius = 10.0,
-    this.overlayMargin = 50.0,
-    this.overlayHeight = 210.0,
-    this.enableFlash = false,
-    this.enableAutoFocus = true,
-    this.imageQuality = 100,
+    this.previewEnabled = true,
+    this.showCropOverlay = true,
+    this.overlayBorderColor = 0xFFFFFFFF,
+    this.overlayBorderWidthDp = 3,
+    this.overlayCornerRadiusDp = 12,
+    this.overlayMarginHorizontalDp = 32,
+    this.overlayHeightDp = 220,
+    this.scanBothSides = false,
+    this.jpegQuality = 95,
+    this.flashEnabled = false,
   });
 
-  /// Create from platform map
-  factory ScanOptions.fromMap(Map<String, dynamic> map) {
-    return ScanOptions(
-      borderColor: map['borderColor'] as String? ?? '#FFFFFF',
-      borderWidth: (map['borderWidth'] as num?)?.toDouble() ?? 2.0,
-      borderRadius: (map['borderRadius'] as num?)?.toDouble() ?? 10.0,
-      overlayMargin: (map['overlayMargin'] as num?)?.toDouble() ?? 50.0,
-      overlayHeight: (map['overlayHeight'] as num?)?.toDouble() ?? 210.0,
-      enableFlash: map['enableFlash'] as bool? ?? false,
-      enableAutoFocus: map['enableAutoFocus'] as bool? ?? true,
-      imageQuality: map['imageQuality'] as int? ?? 100,
-    );
-  }
+  final bool previewEnabled;
+  final bool showCropOverlay;
+  final int overlayBorderColor;
+  final double overlayBorderWidthDp;
+  final double overlayCornerRadiusDp;
+  final double overlayMarginHorizontalDp;
+  final double overlayHeightDp;
+  final bool scanBothSides;
+  final int jpegQuality;
+  final bool flashEnabled;
 
-  /// Convert to platform map
-  Map<String, dynamic> toMap() {
-    return {
-      'borderColor': borderColor,
-      'borderWidth': borderWidth,
-      'borderRadius': borderRadius,
-      'overlayMargin': overlayMargin,
-      'overlayHeight': overlayHeight,
-      'enableFlash': enableFlash,
-      'enableAutoFocus': enableAutoFocus,
-      'imageQuality': imageQuality,
-    };
-  }
-
-  @override
-  String toString() {
-    return 'ScanOptions(borderColor: $borderColor, borderWidth: $borderWidth, '
-        'borderRadius: $borderRadius, overlayMargin: $overlayMargin, '
-        'overlayHeight: $overlayHeight, enableFlash: $enableFlash, '
-        'enableAutoFocus: $enableAutoFocus, imageQuality: $imageQuality)';
-  }
+  Map<String, Object?> toMap() => {
+        'previewEnabled': previewEnabled,
+        'showCropOverlay': showCropOverlay,
+        'overlayBorderColor': overlayBorderColor,
+        'overlayBorderWidthDp': overlayBorderWidthDp,
+        'overlayCornerRadiusDp': overlayCornerRadiusDp,
+        'overlayMarginHorizontalDp': overlayMarginHorizontalDp,
+        'overlayHeightDp': overlayHeightDp,
+        'scanBothSides': scanBothSides,
+        'jpegQuality': jpegQuality,
+        'flashEnabled': flashEnabled,
+      };
 }

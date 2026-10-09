@@ -2,8 +2,6 @@ include: package:flutter_lints/flutter.yaml
 
 linter:
   rules:
-    - public_member_api_docs
-    - lines_longer_than_80_chars: false
-    - avoid_print: true
-    - prefer_const_constructors
-    - prefer_const_literals_to_create_immutables
+    prefer_const_constructors: true
+    prefer_const_literals_to_create_immutables: true
+    avoid_print: false

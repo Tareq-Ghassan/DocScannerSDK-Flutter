@@ -1,0 +1,13 @@
+.DS_Store
+.dart_tool/
+.packages
+.pub-cache/
+.pub/
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+.idea/
+*.iml
+pubspec.lock
+pana-report.json
+.swiftpm/

@@ -1,10 +1,30 @@
-plugins {
-    id 'com.android.library'
-    id 'kotlin-android'
+group = 'com.docscanner.flutter'
+version = '1.0.0'
+
+buildscript {
+    ext.kotlin_version = '2.0.21'
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+    }
 }
 
+rootProject.allprojects {
+    repositories {
+        google()
+        mavenCentral()
+        maven { url 'https://jitpack.io' }
+    }
+}
+
+apply plugin: 'com.android.library'
+apply plugin: 'kotlin-android'
+
 android {
-    namespace 'com.docscanner.sdk.flutter'
+    namespace 'com.docscanner.flutter'
     compileSdk 35
 
     defaultConfig {
@@ -19,9 +39,16 @@ android {
     kotlinOptions {
         jvmTarget = '17'
     }
+
+    sourceSets {
+        main.java.srcDirs += 'src/main/kotlin'
+    }
 }
 
 dependencies {
-    implementation 'androidx.core:core-ktx:1.13.1'
-    implementation 'androidx.appcompat:appcompat:1.7.0'
+    implementation 'androidx.core:core-ktx:1.15.0'
+    // Native DocScanner SDK — do not copy Kotlin sources into this plugin.
+    // Until JitPack has 1.0.0 published from DocScannerSDK-Android, CI/local
+    // apps can also composite-build the sibling submodule. Prefer JitPack pin:
+    api 'com.github.Tareq-Ghassan:DocScannerSDK-Android:1.0.0'
 }

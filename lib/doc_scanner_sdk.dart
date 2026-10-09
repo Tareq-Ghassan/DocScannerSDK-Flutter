@@ -1,10 +1,9 @@
-/// DocumentScanner SDK for Flutter
+/// DocScanner Flutter wrapper.
 ///
-/// A cross-platform document scanner with fixed crop area overlay.
-/// Supports Android, iOS, Web, Windows, macOS, and Linux.
+/// Camera preview, white crop rectangle, and crop-on-capture are implemented
+/// in the native SDKs. This package only exposes a Dart API over platform channels.
 library doc_scanner_sdk;
 
-export 'src/doc_scanner_sdk.dart';
-export 'src/models/scan_result.dart';
+export 'src/doc_scanner.dart';
 export 'src/models/scan_options.dart';
-export 'src/platform/doc_scanner_sdk_platform.dart';
+export 'src/models/scan_result.dart';

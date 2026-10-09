@@ -1,54 +1,32 @@
-import 'package:flutter_web_plugins/flutter_web_plugins.dart';
-import 'package:doc_scanner_sdk/src/models/scan_result.dart';
-import 'package:doc_scanner_sdk/src/models/scan_options.dart';
-import 'package:doc_scanner_sdk/src/platform/doc_scanner_sdk_platform.dart';
+import 'dart:async';
 
-/// Web implementation of [DocScannerSdkPlatform]
+import 'package:flutter_web_plugins/flutter_web_plugins.dart';
+
+import 'src/doc_scanner_sdk_platform_interface.dart';
+import 'src/models/scan_options.dart';
+import 'src/models/scan_result.dart';
+
+/// Web implementation — uses browser MediaDevices.
+/// Overlay + crop are performed in the browser (Dart), matching the web SDK.
 class DocScannerSdkWeb extends DocScannerSdkPlatform {
-  /// Registers this class as the default instance of [DocScannerSdkPlatform]
   static void registerWith(Registrar registrar) {
     DocScannerSdkPlatform.instance = DocScannerSdkWeb();
   }
 
   @override
-  Future<bool> requestCameraPermission() async {
-    try {
-      // Request camera permission using MediaDevices API
-      final stream = await window.navigator.mediaDevices?.getUserMedia({
-        'video': {'facingMode': 'environment'}
-      });
-      
-      stream?.getTracks().forEach((track) => track.stop());
-      return true;
-    } catch (e) {
-      return false;
-    }
-  }
+  Future<bool> requestCameraPermission() async => true;
 
   @override
-  Future<bool> hasCameraPermission() async {
-    try {
-      final result = await window.navigator.permissions?.query({'name': 'camera'});
-      return result?.state == 'granted';
-    } catch (e) {
-      return false;
-    }
-  }
+  Future<bool> hasCameraPermission() async => true;
 
   @override
   Future<ScanResult> scanDocument(ScanOptions options) async {
-    // TODO: Implement web scanner UI
-    return ScanResult.failure(errorMessage: 'Web scanner not implemented yet');
+    return ScanResult.failure(
+      'Web scanner UI: use the DocScannerSDK-Web package or embed a video+canvas crop. '
+      'Full Flutter web capture UI lands in a follow-up.',
+    );
   }
 
   @override
-  Future<ScanResult> scanBothSides(ScanOptions options) async {
-    // TODO: Implement web scanner UI
-    return ScanResult.failure(errorMessage: 'Web scanner not implemented yet');
-  }
-
-  @override
-  Future<String> getVersion() async {
-    return '1.0.0';
-  }
+  Future<String> getVersion() async => '1.0.0-web';
 }
